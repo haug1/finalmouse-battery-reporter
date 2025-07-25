@@ -5,7 +5,7 @@
 #include <hidapi/hidapi.h>
 #include <string.h>
 
-static const int BATTERY_POLL_INTERVAL = 10000;
+static const int BATTERY_POLL_INTERVAL = 60000;
 
 int voltage_to_percent(int millivolts) {
     float voltage = millivolts / 1000.0f;
@@ -68,9 +68,14 @@ uint64_t current_millis() {
     return (uint64_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
 
+hid_device* init_hid_device() {
+    hid_device *handle = hid_open(0x361d, 0x0100, NULL);
+    return handle;
+}
+
 int main() {
     if (hid_init()) return 1;
-    hid_device *handle = hid_open(0x361d, 0x0100, NULL);
+    hid_device* handle = init_hid_device();
     if (!handle) {
         fprintf(stderr, "Unable to open device\n");
         return 1;
@@ -98,7 +103,13 @@ int main() {
             }
         } else if (res < 0) {
             fprintf(stderr, "Read error\n");
-            break;
+            do {
+                handle = init_hid_device();
+                if(!handle) {
+                    fprintf(stderr, "Unable to open HID device, attempt again in 10 sec\n");
+                }
+                sleep(10);
+            } while(!handle);
         }
 
         usleep(1000);
