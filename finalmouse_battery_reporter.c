@@ -1,11 +1,16 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <sys/time.h>
 #include <hidapi/hidapi.h>
 #include <string.h>
 
+// Sends a command to the mouse requesting it to report battery status on the specified interval
 static const int BATTERY_POLL_INTERVAL = 60000;
+
+// Outputs the result parsed percentage to the specified filepath
+static const char* BATTERY_OUTPUT_FILEPATH = "/home/main/.cache/finalmouse-hid/battery";
 
 int voltage_to_percent(int millivolts) {
     float voltage = millivolts / 1000.0f;
@@ -27,14 +32,38 @@ int voltage_to_percent(int millivolts) {
     return 100;
 }
 
+void battery_percent_to_output_text(int percent, char *buffer, size_t buffer_size) {
+    if (percent <= 5) {
+        snprintf(buffer, buffer_size, "%d%% \n\ncritical", percent);
+    } else if (percent <= 30) {
+        snprintf(buffer, buffer_size, "%d%% \n\nlow", percent);
+    } else if (percent <= 60) {
+        snprintf(buffer, buffer_size, "%d%% \n\nmedium", percent);
+    } else if (percent <= 80) {
+        snprintf(buffer, buffer_size, "%d%% \n\nhigh", percent);
+    } else {
+        snprintf(buffer, buffer_size, "%d%% \n\nfull", percent);
+    }
+}
+
 int write_battery_percent_to_file(int percent) {
-    FILE *fp = fopen("/home/main/.cache/finalmouse-hid/battery", "w");
+    FILE *fp = fopen(BATTERY_OUTPUT_FILEPATH, "w");
     if (!fp) {
         perror("Failed to open file for writing");
         return -1;
     }
 
-    fprintf(fp, "%d\n", percent);
+    char output[100];
+    battery_percent_to_output_text(percent, output, sizeof(output));
+
+    if (fprintf(fp, "%s", output) < 0) {
+        perror("Failed to write to file");
+        fclose(fp);
+        return -1;
+    }
+
+    printf("Received battery status update:\n%s\n", output);
+
     fclose(fp);
     return 0;
 }
@@ -80,7 +109,7 @@ int main() {
         fprintf(stderr, "Unable to open device\n");
         return 1;
     }
-    printf("Listening for battery status reports...\n");
+    printf("Starting to listen for battery status reports...\n");
 
     uint64_t last_trigger = 0;
     unsigned char buf[65];
@@ -99,7 +128,6 @@ int main() {
                 int mv = (buf[5] << 8) | buf[4];
                 int pct = voltage_to_percent(mv);
                 write_battery_percent_to_file(pct);
-                printf("%d%%\n", pct);
             }
         } else if (res < 0) {
             fprintf(stderr, "Read error\n");
@@ -119,3 +147,4 @@ int main() {
     hid_exit();
     return 0;
 }
+
