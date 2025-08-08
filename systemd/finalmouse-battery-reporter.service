@@ -1,0 +1,15 @@
+[Unit]
+Description=Finalmouse Battery Reporter
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/finalmouse_battery_reporter
+Environment=FMBR_OUTPUT_FILE=%h/.cache/finalmouse/battery
+Restart=on-failure
+RestartSec=2
+StandardOutput=null
+StandardError=journal
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,56 @@
+# finalmouse-battery-reporter
+
+Reports Finalmouse battery level via HID and writes a Waybar/Vibar-compatible text payload to a cache file.
+
+## Dependencies
+
+- `gcc`
+- `hidapi` (`libhidapi-hidraw`)
+- `systemd --user`
+
+## Build
+
+```bash
+./scripts/build.sh
+```
+
+Build output:
+
+- `./build/finalmouse_battery_reporter`
+
+## Install (recommended)
+
+```bash
+./scripts/install.sh
+```
+
+This will:
+
+- build the binary
+- install it to `~/.local/bin/finalmouse_battery_reporter`
+- install and enable `~/.config/systemd/user/finalmouse-battery-reporter.service`
+- start the service immediately
+
+Default output file written by the service:
+
+- `~/.cache/finalmouse/battery`
+
+## Service management
+
+```bash
+systemctl --user status finalmouse-battery-reporter.service
+journalctl --user -u finalmouse-battery-reporter.service -f
+systemctl --user restart finalmouse-battery-reporter.service
+```
+
+## Uninstall
+
+```bash
+./scripts/uninstall.sh
+```
+
+## Configuration
+
+Runtime environment variables:
+
+- `FMBR_OUTPUT_FILE`: override battery output file path.
