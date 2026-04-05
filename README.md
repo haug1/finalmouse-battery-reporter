@@ -61,12 +61,18 @@ systemctl --user restart finalmouse-battery-reporter.service
 Runtime environment variables:
 
 - `FMBR_OUTPUT_FILE`: override battery output file path.
-- `FMBR_OUTPUT_FORMAT`: output format, either `json` (default) or `text`.
+- `FMBR_OUTPUT_FORMAT`: output format, one of `json` (default), `text`, or `raw`.
 
 By default, the output file contains:
 
 ```json
 {"text":"42%","color":"#ffd60a","icon":""}
+```
+
+When `FMBR_OUTPUT_FORMAT=raw`, the output file contains only the numeric percentage:
+
+```text
+42
 ```
 
 ## Nix development

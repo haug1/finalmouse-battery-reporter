@@ -21,6 +21,7 @@ static volatile sig_atomic_t keep_running = 1;
 typedef enum {
     OUTPUT_FORMAT_TEXT,
     OUTPUT_FORMAT_JSON,
+    OUTPUT_FORMAT_RAW,
 } output_format_t;
 
 typedef struct {
@@ -85,6 +86,9 @@ output_format_t resolved_output_format() {
     const char* format = getenv("FMBR_OUTPUT_FORMAT");
     if (format && strcmp(format, "text") == 0) {
         return OUTPUT_FORMAT_TEXT;
+    }
+    if (format && strcmp(format, "raw") == 0) {
+        return OUTPUT_FORMAT_RAW;
     }
 
     return OUTPUT_FORMAT_JSON;
@@ -161,6 +165,10 @@ void battery_percent_to_output_json(int percent, char* buffer, size_t buffer_siz
     );
 }
 
+void battery_percent_to_output_raw(int percent, char* buffer, size_t buffer_size) {
+    snprintf(buffer, buffer_size, "%d\n", percent);
+}
+
 int write_battery_percent_to_file(int percent) {
     const char* output_path = resolved_output_filepath();
 
@@ -176,8 +184,11 @@ int write_battery_percent_to_file(int percent) {
     }
 
     char output[160];
-    if (resolved_output_format() == OUTPUT_FORMAT_JSON) {
+    output_format_t format = resolved_output_format();
+    if (format == OUTPUT_FORMAT_JSON) {
         battery_percent_to_output_json(percent, output, sizeof(output));
+    } else if (format == OUTPUT_FORMAT_RAW) {
+        battery_percent_to_output_raw(percent, output, sizeof(output));
     } else {
         battery_percent_to_output_text(percent, output, sizeof(output));
     }
