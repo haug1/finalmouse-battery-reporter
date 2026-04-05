@@ -97,6 +97,10 @@
         config = lib.mkIf cfg.enable {
           environment.systemPackages = [package];
 
+          services.udev.extraRules = ''
+            KERNEL=="hidraw*", ATTRS{idVendor}=="361d", ATTRS{idProduct}=="0100", TAG+="uaccess"
+          '';
+
           systemd.user.services.finalmouse-battery-reporter = {
             description = "Finalmouse Battery Reporter";
             after = ["default.target"];
