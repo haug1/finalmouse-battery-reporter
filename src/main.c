@@ -25,7 +25,8 @@ typedef enum {
 } output_format_t;
 
 typedef struct {
-    const char* icon;
+    const char* unicode_icon;
+    const char* icon_name;
     const char* color;
     const char* level;
 } battery_output_style_t;
@@ -117,31 +118,36 @@ int voltage_to_percent(int millivolts) {
 battery_output_style_t battery_percent_to_style(int percent) {
     if (percent <= 5) {
         return (battery_output_style_t){
-            .icon = "",
+            .unicode_icon = "",
+            .icon_name = "battery",
             .color = "#ff3b30",
             .level = "critical",
         };
     } else if (percent <= 30) {
         return (battery_output_style_t){
-            .icon = "",
+            .unicode_icon = "",
+            .icon_name = "battery-1",
             .color = "#ff9500",
             .level = "low",
         };
     } else if (percent <= 60) {
         return (battery_output_style_t){
-            .icon = "",
+            .unicode_icon = "",
+            .icon_name = "battery-2",
             .color = "#ffd60a",
             .level = "medium",
         };
     } else if (percent <= 80) {
         return (battery_output_style_t){
-            .icon = "",
+            .unicode_icon = "",
+            .icon_name = "battery-3",
             .color = "#32d74b",
             .level = "high",
         };
     } else {
         return (battery_output_style_t){
-            .icon = "",
+            .unicode_icon = "",
+            .icon_name = "battery-4",
             .color = "#30d158",
             .level = "full",
         };
@@ -150,10 +156,10 @@ battery_output_style_t battery_percent_to_style(int percent) {
 
 void battery_percent_to_output_text(int percent, char* buffer, size_t buffer_size) {
     battery_output_style_t style = battery_percent_to_style(percent);
-    snprintf(buffer, buffer_size, "%d%% %s\n\n%s", percent, style.icon, style.level);
+    snprintf(buffer, buffer_size, "%d%% %s\n\n%s", percent, style.unicode_icon, style.level);
 }
 
-void battery_percent_to_output_json(int percent, char* buffer, size_t buffer_size) {
+void battery_percent_to_output_json(int percent, char* buffer, size_t buffer_size, int use_icon_names) {
     battery_output_style_t style = battery_percent_to_style(percent);
     snprintf(
         buffer,
@@ -161,7 +167,7 @@ void battery_percent_to_output_json(int percent, char* buffer, size_t buffer_siz
         "{\"text\":\"%d%%\",\"color\":\"%s\",\"icon\":\"%s\"}\n",
         percent,
         style.color,
-        style.icon
+        use_icon_names ? style.icon_name : style.unicode_icon
     );
 }
 
@@ -171,6 +177,8 @@ void battery_percent_to_output_raw(int percent, char* buffer, size_t buffer_size
 
 int write_battery_percent_to_file(int percent) {
     const char* output_path = resolved_output_filepath();
+    const char* icon_mode = getenv("FMBR_ICON_FORMAT");
+    int use_icon_names = !icon_mode || strcmp(icon_mode, "unicode") != 0;
 
     if (ensure_parent_dir_exists(output_path) != 0) {
         fprintf(stderr, "Failed to ensure output directory for %s\n", output_path);
@@ -186,7 +194,7 @@ int write_battery_percent_to_file(int percent) {
     char output[160];
     output_format_t format = resolved_output_format();
     if (format == OUTPUT_FORMAT_JSON) {
-        battery_percent_to_output_json(percent, output, sizeof(output));
+        battery_percent_to_output_json(percent, output, sizeof(output), use_icon_names);
     } else if (format == OUTPUT_FORMAT_RAW) {
         battery_percent_to_output_raw(percent, output, sizeof(output));
     } else {

@@ -62,12 +62,21 @@ Runtime environment variables:
 
 - `FMBR_OUTPUT_FILE`: override battery output file path.
 - `FMBR_OUTPUT_FORMAT`: output format, one of `json` (default), `text`, or `raw`.
+- `FMBR_ICON_FORMAT`: icon representation for JSON output, either `name` (default) or `unicode`.
 
 By default, the output file contains:
 
 ```json
+{"text":"42%","color":"#ffd60a","icon":"battery-2"}
+```
+
+When `FMBR_ICON_FORMAT=unicode`, JSON output uses battery glyphs instead:
+
+```json
 {"text":"42%","color":"#ffd60a","icon":""}
 ```
+
+Available icon names are `battery`, `battery-1`, `battery-2`, `battery-3`, and `battery-4`.
 
 When `FMBR_OUTPUT_FORMAT=raw`, the output file contains only the numeric percentage:
 
