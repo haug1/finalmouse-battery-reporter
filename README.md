@@ -1,6 +1,6 @@
 # finalmouse-battery-reporter
 
-Reports Finalmouse battery level via HID and writes a Waybar/Vibar-compatible text payload to a cache file.
+Reports Finalmouse battery level via HID and writes either a JSON payload or a Waybar/Vibar-compatible text payload to a cache file.
 
 ## Dependencies
 
@@ -61,6 +61,13 @@ systemctl --user restart finalmouse-battery-reporter.service
 Runtime environment variables:
 
 - `FMBR_OUTPUT_FILE`: override battery output file path.
+- `FMBR_OUTPUT_FORMAT`: output format, either `json` (default) or `text`.
+
+By default, the output file contains:
+
+```json
+{"text":"42%","color":"#ffd60a","icon":""}
+```
 
 ## Nix development
 

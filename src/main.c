@@ -18,6 +18,17 @@ static const char* BATTERY_OUTPUT_FILEPATH_DEFAULT = ".cache/finalmouse/battery"
 
 static volatile sig_atomic_t keep_running = 1;
 
+typedef enum {
+    OUTPUT_FORMAT_TEXT,
+    OUTPUT_FORMAT_JSON,
+} output_format_t;
+
+typedef struct {
+    const char* icon;
+    const char* color;
+    const char* level;
+} battery_output_style_t;
+
 const char* resolved_output_filepath() {
     const char* override = getenv("FMBR_OUTPUT_FILE");
     if (override && override[0] != '\0') {
@@ -70,6 +81,15 @@ void handle_signal(int signum) {
     keep_running = 0;
 }
 
+output_format_t resolved_output_format() {
+    const char* format = getenv("FMBR_OUTPUT_FORMAT");
+    if (format && strcmp(format, "text") == 0) {
+        return OUTPUT_FORMAT_TEXT;
+    }
+
+    return OUTPUT_FORMAT_JSON;
+}
+
 int voltage_to_percent(int millivolts) {
     float voltage = millivolts / 1000.0f;
     float voltage_map[] = {3.0, 3.62, 3.66, 3.74, 3.88, 4.17, 4.38};
@@ -90,18 +110,55 @@ int voltage_to_percent(int millivolts) {
     return 100;
 }
 
-void battery_percent_to_output_text(int percent, char* buffer, size_t buffer_size) {
+battery_output_style_t battery_percent_to_style(int percent) {
     if (percent <= 5) {
-        snprintf(buffer, buffer_size, "%d%% \n\ncritical", percent);
+        return (battery_output_style_t){
+            .icon = "",
+            .color = "#ff3b30",
+            .level = "critical",
+        };
     } else if (percent <= 30) {
-        snprintf(buffer, buffer_size, "%d%% \n\nlow", percent);
+        return (battery_output_style_t){
+            .icon = "",
+            .color = "#ff9500",
+            .level = "low",
+        };
     } else if (percent <= 60) {
-        snprintf(buffer, buffer_size, "%d%% \n\nmedium", percent);
+        return (battery_output_style_t){
+            .icon = "",
+            .color = "#ffd60a",
+            .level = "medium",
+        };
     } else if (percent <= 80) {
-        snprintf(buffer, buffer_size, "%d%% \n\nhigh", percent);
+        return (battery_output_style_t){
+            .icon = "",
+            .color = "#32d74b",
+            .level = "high",
+        };
     } else {
-        snprintf(buffer, buffer_size, "%d%% \n\nfull", percent);
+        return (battery_output_style_t){
+            .icon = "",
+            .color = "#30d158",
+            .level = "full",
+        };
     }
+}
+
+void battery_percent_to_output_text(int percent, char* buffer, size_t buffer_size) {
+    battery_output_style_t style = battery_percent_to_style(percent);
+    snprintf(buffer, buffer_size, "%d%% %s\n\n%s", percent, style.icon, style.level);
+}
+
+void battery_percent_to_output_json(int percent, char* buffer, size_t buffer_size) {
+    battery_output_style_t style = battery_percent_to_style(percent);
+    snprintf(
+        buffer,
+        buffer_size,
+        "{\"text\":\"%d%%\",\"color\":\"%s\",\"icon\":\"%s\"}\n",
+        percent,
+        style.color,
+        style.icon
+    );
 }
 
 int write_battery_percent_to_file(int percent) {
@@ -118,8 +175,12 @@ int write_battery_percent_to_file(int percent) {
         return -1;
     }
 
-    char output[100];
-    battery_percent_to_output_text(percent, output, sizeof(output));
+    char output[160];
+    if (resolved_output_format() == OUTPUT_FORMAT_JSON) {
+        battery_percent_to_output_json(percent, output, sizeof(output));
+    } else {
+        battery_percent_to_output_text(percent, output, sizeof(output));
+    }
 
     if (fprintf(fp, "%s", output) < 0) {
         perror("Failed to write to file");
