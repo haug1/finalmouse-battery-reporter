@@ -11,6 +11,13 @@ Reports Finalmouse battery level via HID and writes a Waybar/Vibar-compatible te
 ## Build
 
 ```bash
+nix build
+./result/bin/finalmouse_battery_reporter
+```
+
+Or with the existing script:
+
+```bash
 ./scripts/build.sh
 ```
 
@@ -54,3 +61,16 @@ systemctl --user restart finalmouse-battery-reporter.service
 Runtime environment variables:
 
 - `FMBR_OUTPUT_FILE`: override battery output file path.
+
+## Nix development
+
+```bash
+nix develop
+```
+
+This provides the compiler and `hidapi` development inputs needed for local builds.
+
+## NixOS module
+
+This flake also exports `nixosModules.default`, so a host can consume the package and
+user service directly from the app repo.
