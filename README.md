@@ -105,3 +105,30 @@ This provides the compiler and `hidapi` development inputs needed for local buil
 
 This flake also exports `nixosModules.default`, so a host can consume the package and
 user service directly from the app repo.
+
+Example:
+
+```nix
+{
+  imports = [
+    inputs.finalmouse-battery-reporter.nixosModules.default
+  ];
+
+  services.finalmouseBatteryReporter = {
+    enable = true;
+    outputFile = "%h/.cache/finalmouse/battery";
+    outputFormat = "json";
+    iconFormat = "name";
+    colorFormat = "hex";
+  };
+}
+```
+
+Available NixOS module options:
+
+- `services.finalmouseBatteryReporter.enable`
+- `services.finalmouseBatteryReporter.package`
+- `services.finalmouseBatteryReporter.outputFile`
+- `services.finalmouseBatteryReporter.outputFormat`
+- `services.finalmouseBatteryReporter.iconFormat`
+- `services.finalmouseBatteryReporter.colorFormat`

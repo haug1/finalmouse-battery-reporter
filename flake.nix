@@ -92,6 +92,24 @@
             default = "%h/.cache/finalmouse/battery";
             description = "Battery reporter output file passed via FMBR_OUTPUT_FILE.";
           };
+
+          outputFormat = lib.mkOption {
+            type = lib.types.enum ["json" "text" "raw"];
+            default = "json";
+            description = "Battery reporter output format passed via FMBR_OUTPUT_FORMAT.";
+          };
+
+          iconFormat = lib.mkOption {
+            type = lib.types.enum ["name" "unicode"];
+            default = "name";
+            description = "JSON icon representation passed via FMBR_ICON_FORMAT.";
+          };
+
+          colorFormat = lib.mkOption {
+            type = lib.types.enum ["hex" "name"];
+            default = "hex";
+            description = "JSON color representation passed via FMBR_COLOR_FORMAT.";
+          };
         };
 
         config = lib.mkIf cfg.enable {
@@ -109,7 +127,12 @@
             serviceConfig = {
               Type = "simple";
               ExecStart = "${package}/bin/finalmouse_battery_reporter";
-              Environment = "FMBR_OUTPUT_FILE=${cfg.outputFile}";
+              Environment = [
+                "FMBR_OUTPUT_FILE=${cfg.outputFile}"
+                "FMBR_OUTPUT_FORMAT=${cfg.outputFormat}"
+                "FMBR_ICON_FORMAT=${cfg.iconFormat}"
+                "FMBR_COLOR_FORMAT=${cfg.colorFormat}"
+              ];
               Restart = "on-failure";
               RestartSec = 2;
               StandardOutput = "null";
