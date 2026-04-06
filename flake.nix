@@ -16,7 +16,10 @@
         pname = "finalmouse-battery-reporter";
         version = "unstable-${self.lastModifiedDate or "19700101"}";
 
-        src = self;
+        src = builtins.path {
+          path = ./.;
+          name = "finalmouse-battery-reporter-source";
+        };
         strictDeps = true;
 
         nativeBuildInputs = [
@@ -32,6 +35,7 @@
 
           mkdir -p build
           gcc -Wall -Wextra -O2 \
+            -I src \
             -o build/finalmouse_battery_reporter \
             src/main.c \
             $(pkg-config --cflags --libs hidapi-hidraw)
@@ -77,6 +81,10 @@
         package =
           cfg.package
           or self.packages.${pkgs.stdenv.hostPlatform.system}.default;
+        configFile = pkgs.writeText "finalmouse-battery-reporter.json" (builtins.toJSON {
+          format = cfg.format;
+          thresholds = cfg.thresholds;
+        });
       in {
         options.services.finalmouseBatteryReporter = {
           enable = lib.mkEnableOption "the Finalmouse battery reporter user service";
@@ -93,22 +101,44 @@
             description = "Battery reporter output file passed via FMBR_OUTPUT_FILE.";
           };
 
-          outputFormat = lib.mkOption {
+          format = lib.mkOption {
             type = lib.types.enum ["json" "text" "raw"];
-            default = "json";
-            description = "Battery reporter output format passed via FMBR_OUTPUT_FORMAT.";
+            default = "raw";
+            description = "Battery reporter output format written to the generated JSON config.";
           };
 
-          iconFormat = lib.mkOption {
-            type = lib.types.enum ["name" "unicode"];
-            default = "name";
-            description = "JSON icon representation passed via FMBR_ICON_FORMAT.";
-          };
+          thresholds = lib.mkOption {
+            default = [];
+            description = "Battery thresholds used to override icon, color, class, and optional tooltip for text/json output.";
+            type = lib.types.listOf (lib.types.submodule {
+              options = {
+                percentage = lib.mkOption {
+                  type = lib.types.ints.between 0 100;
+                  description = "Minimum percentage matched by this threshold.";
+                };
 
-          colorFormat = lib.mkOption {
-            type = lib.types.enum ["hex" "name"];
-            default = "hex";
-            description = "JSON color representation passed via FMBR_COLOR_FORMAT.";
+                icon = lib.mkOption {
+                  type = lib.types.str;
+                  description = "Icon string used by the matched threshold.";
+                };
+
+                color = lib.mkOption {
+                  type = lib.types.str;
+                  description = "Color string used by the matched threshold.";
+                };
+
+                class = lib.mkOption {
+                  type = lib.types.str;
+                  description = "Class string used by text output and JSON class.";
+                };
+
+                tooltip = lib.mkOption {
+                  type = lib.types.nullOr lib.types.str;
+                  default = null;
+                  description = "Optional tooltip string for the matched threshold.";
+                };
+              };
+            });
           };
         };
 
@@ -129,9 +159,7 @@
               ExecStart = "${package}/bin/finalmouse_battery_reporter";
               Environment = [
                 "FMBR_OUTPUT_FILE=${cfg.outputFile}"
-                "FMBR_OUTPUT_FORMAT=${cfg.outputFormat}"
-                "FMBR_ICON_FORMAT=${cfg.iconFormat}"
-                "FMBR_COLOR_FORMAT=${cfg.colorFormat}"
+                "FMBR_CONFIG_FILE=${configFile}"
               ];
               Restart = "on-failure";
               RestartSec = 2;
